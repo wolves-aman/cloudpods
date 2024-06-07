@@ -99,6 +99,7 @@ func AddGuestTaskHandler(prefix string, app *appsrv.Application) {
 			"qga-set-password":         qgaGuestSetPassword,
 			"qga-guest-ping":           qgaGuestPing,
 			"qga-command":              qgaCommand,
+			"qga-command-aman":         qgaCommandAman,
 			"reset-nic-traffic-limit":  guestResetNicTrafficLimit,
 			"set-nic-traffic-limit":    guestSetNicTrafficLimit,
 			"qga-guest-info-task":      qgaGuestInfoTask,
@@ -916,7 +917,30 @@ func qgaCommand(ctx context.Context, userCred mcclient.TokenCredential, sid stri
 
 	return gm.QgaCommand(qgaCmd, sid, input.Timeout)
 }
-
+func qgaCommandAman(ctx context.Context, userCred mcclient.TokenCredential, sid string, body jsonutils.JSONObject) (interface{}, error) {
+	gm := guestman.GetGuestManager()
+	input := computeapi.ServerQgaCommandInput{}
+	err := body.Unmarshal(&input)
+	if err != nil {
+		return nil, httperrors.NewInputParameterError("unmarshal input to ServerQgaCommandInput: %s", err.Error())
+	}
+	cmdJson, err := jsonutils.ParseString(input.Command)
+	if err != nil {
+		return nil, httperrors.NewInputParameterError("failed parse aman qga command")
+	}
+	qgaCmd := &monitor.Command{}
+	qgaCmd.Execute, err = cmdJson.GetString("execute")
+	if err != nil {
+		return nil, httperrors.NewInputParameterError("failed get aman qga command")
+	}
+	if cmdJson.Contains("arguments") {
+		qgaCmd.Args, err = cmdJson.Get("arguments")
+		if err != nil {
+			return nil, httperrors.NewInputParameterError("failed unmarshal aman qga command[" + err.Error() + "]")
+		}
+	}
+	return gm.QgaCommand(qgaCmd, sid, input.Timeout)
+}
 func qgaGuestInfoTask(ctx context.Context, userCred mcclient.TokenCredential, sid string, body jsonutils.JSONObject) (interface{}, error) {
 	gm := guestman.GetGuestManager()
 	return gm.QgaGuestInfoTask(sid)

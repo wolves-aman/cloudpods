@@ -117,7 +117,28 @@ func (self *SGuest) PerformQgaCommand(
 	}
 	return drv.RequestQgaCommand(ctx, userCred, jsonutils.Marshal(input), host, self)
 }
-
+func (self *SGuest) PerformQgaCommandAman(
+	ctx context.Context,
+	userCred mcclient.TokenCredential,
+	query jsonutils.JSONObject,
+	input *api.ServerQgaCommandInput,
+) (jsonutils.JSONObject, error) {
+	if self.PowerStates != api.VM_POWER_STATES_ON {
+		return nil, httperrors.NewBadRequestError("can't use qga-aman in vm status: %s", self.Status)
+	}
+	if input.Command == "" {
+		return nil, httperrors.NewMissingParameterError("command")
+	}
+	host, err := self.GetHost()
+	if err != nil {
+		return nil, err
+	}
+	drv, err := self.GetDriver()
+	if err != nil {
+		return nil, err
+	}
+	return drv.RequestQgaCommandAman(ctx, userCred, jsonutils.Marshal(input), host, self)
+}
 func (self *SGuest) PerformQgaGuestInfoTask(
 	ctx context.Context,
 	userCred mcclient.TokenCredential,
